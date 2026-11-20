@@ -11,19 +11,8 @@ import { esc, calcTotal, sendMail } from "./utils.js";
 
 const app = express();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_missing");
-const origins = (process.env.CLIENT_URL || "").split(",").map((s) => s.trim().replace(/\/$/, "")).filter(Boolean);
-const corsOptions = {
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true);
-    const o = origin.replace(/\/$/, "");
-    const ok = !origins.length || origins.includes(o) || /^http:\/\/localhost:\d+$/.test(o);
-    cb(null, ok);
-  },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-};
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+const origins = (process.env.CLIENT_URL || "").split(",").map((s) => s.trim()).filter(Boolean);
+app.use(cors({ origin: origins.length ? origins : true, credentials: true }));
 app.use(express.json());
 
 const oid = (id) => (ObjectId.isValid(id) ? new ObjectId(id) : null);
