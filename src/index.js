@@ -11,8 +11,40 @@ import { esc, calcTotal, sendMail } from "./utils.js";
 
 const app = express();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_missing");
-const origins = (process.env.CLIENT_URL || "").split(",").map((s) => s.trim()).filter(Boolean);
-app.use(cors({ origin: origins.length ? origins : true, credentials: true }));
+
+const normalizeOrigin = (value) => (value || "").trim().replace(/\/+$/, "").toLowerCase();
+const origins = (process.env.CLIENT_URL || "")
+  .split(",")
+  .map(normalizeOrigin)
+  .filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  const value = normalizeOrigin(origin);
+  if (!value) return true; // same-origin, curl, server-to-server requests
+  if (!origins.length) return true; // nothing configured: allow any client
+  if (origins.includes(value)) return true;
+  try {
+    const { hostname, protocol } = new URL(value);
+    if (protocol !== "https:" && protocol !== "http:") return false;
+    // Allow local development and any Vercel deployment (production + previews)
+    if (hostname === "localhost" || hostname === "127.0.0.1") return true;
+    if (hostname === "vercel.app" || hostname.endsWith(".vercel.app")) return true;
+  } catch {
+    return false;
+  }
+  return false;
+};
+
+app.use(cors({
+  origin: (origin, callback) => callback(null, isAllowedOrigin(origin)),
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  optionsSuccessStatus: 204,
+  maxAge: 86400,
+}));
+// Always answer preflight requests, even for disallowed origins (no CORS headers are added then).
+app.options("*", (req, res) => res.sendStatus(204));
 app.use(express.json());
 
 const oid = (id) => (ObjectId.isValid(id) ? new ObjectId(id) : null);
