@@ -238,6 +238,10 @@ app.post("/api/bookings/checkout", verifyToken, verifyRenter, wrap(async (req, r
   if (+quantity > free) return res.status(409).json({ message: `Only ${Math.max(free, 0)} unit(s) available for these dates` });
 
   const total = calcTotal(eq, startDate, endDate, quantity);
+  const reqOrigin = normalizeOrigin(req.headers.origin);
+  const clientBase = origins.includes(reqOrigin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(reqOrigin)
+    ? reqOrigin
+    : origins[0] || "http://localhost:3000";
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     customer_email: req.user.email,
@@ -249,8 +253,8 @@ app.post("/api/bookings/checkout", verifyToken, verifyRenter, wrap(async (req, r
       },
     }],
     metadata: { equipmentId, startDate, endDate, quantity: String(quantity), phone: phone || "", address: address || "", notes: (notes || "").slice(0, 400), customerEmail: req.user.email, total: String(total) },
-    success_url: `${origins[0] || "http://localhost:3000"}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origins[0] || "http://localhost:3000"}/equipment/${equipmentId}`,
+    success_url: `${clientBase}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${clientBase}/equipment/${equipmentId}`,
   });
   res.json({ url: session.url, total });
 }));
