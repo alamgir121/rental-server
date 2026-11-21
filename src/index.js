@@ -59,11 +59,13 @@ app.post("/api/auth/jwt", wrap(async (req, res) => {
   if (!email) return res.status(400).json({ message: "email required" });
   const users = await col("users");
   const isAdmin = process.env.ADMIN_EMAIL && email === process.env.ADMIN_EMAIL;
-  await users.updateOne(
+   await users.updateOne(
     { email },
     {
-      $setOnInsert: { email, role: isAdmin ? "admin" : "customer", phone: "", address: "", createdAt: new Date() },
-      $set: { ...(name && { name }), ...(photo && { photo }) },
+      $setOnInsert: {
+        email, name: name || "", photo: photo || "",
+        role: isAdmin ? "admin" : "customer", phone: "", address: "", createdAt: new Date(),
+      },
     },
     { upsert: true }
   );
@@ -79,10 +81,16 @@ app.get("/api/users/me", verifyToken, wrap(async (req, res) => {
 }));
 app.patch("/api/users/me", verifyToken, wrap(async (req, res) => {
   const { name, photo, phone, address } = req.body;
-  await (await col("users")).updateOne({ email: req.user.email }, { $set: { name, photo, phone, address } });
-  res.json({ success: true });
+  const updates = {};
+  if (typeof name === "string" && name.trim()) updates.name = name.trim();
+  if (typeof photo === "string") updates.photo = photo;
+  if (typeof phone === "string") updates.phone = phone.trim();
+  if (typeof address === "string") updates.address = address.trim();
+  if (!Object.keys(updates).length) return res.status(400).json({ message: "Nothing to update" });
+  const users = await col("users");
+  await users.updateOne({ email: req.user.email }, { $set: updates });
+  res.json({ success: true, user: await users.findOne({ email: req.user.email }) });
 }));
-
 
 app.get("/api/admin/users", verifyToken, verifyAdmin, wrap(async (_, res) => {
   res.json(await (await col("users")).find().sort({ createdAt: -1 }).toArray());
