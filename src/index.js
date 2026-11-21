@@ -20,13 +20,13 @@ const origins = (process.env.CLIENT_URL || "")
 
 const isAllowedOrigin = (origin) => {
   const value = normalizeOrigin(origin);
-  if (!value) return true; // same-origin, curl, server-to-server requests
-  if (!origins.length) return true; // nothing configured: allow any client
+  if (!value) return true; 
+  if (!origins.length) return true; 
   if (origins.includes(value)) return true;
   try {
     const { hostname, protocol } = new URL(value);
     if (protocol !== "https:" && protocol !== "http:") return false;
-    // Allow local development and any Vercel deployment (production + previews)
+    
     if (hostname === "localhost" || hostname === "127.0.0.1") return true;
     if (hostname === "vercel.app" || hostname.endsWith(".vercel.app")) return true;
   } catch {
@@ -43,7 +43,7 @@ app.use(cors({
   optionsSuccessStatus: 204,
   maxAge: 86400,
 }));
-// Always answer preflight requests, even for disallowed origins (no CORS headers are added then).
+
 app.options("*", (req, res) => res.sendStatus(204));
 app.use(express.json());
 
