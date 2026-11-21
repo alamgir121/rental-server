@@ -216,8 +216,12 @@ app.delete("/api/favorites/:equipmentId", verifyToken, verifyRenter, wrap(async 
 
 async function availableQty(equipment, start, end) {
   const overlap = await (await col("bookings")).aggregate([
-    { $match: { equipmentId: equipment._id.toString(), bookingStatus: "confirmed",
-        startDate: { $lte: new Date(end) }, endDate: { $gte: new Date(start) } } },
+    {
+      $match: {
+        equipmentId: equipment._id.toString(), bookingStatus: "confirmed",
+        startDate: { $lte: new Date(end) }, endDate: { $gte: new Date(start) }
+      }
+    },
     { $group: { _id: null, qty: { $sum: "$quantity" } } },
   ]).toArray();
   return equipment.quantity - (overlap[0]?.qty || 0);
@@ -239,8 +243,10 @@ app.post("/api/bookings/checkout", verifyToken, verifyRenter, wrap(async (req, r
     customer_email: req.user.email,
     line_items: [{
       quantity: 1,
-      price_data: { currency: "usd", unit_amount: Math.round(total * 100),
-        product_data: { name: `${eq.name} (${quantity} × ${startDate} → ${endDate})`, ...(eq.image && { images: [eq.image] }) } },
+      price_data: {
+        currency: "usd", unit_amount: Math.round(total * 100),
+        product_data: { name: `${eq.name} (${quantity} × ${startDate} → ${endDate})`, ...(eq.image && { images: [eq.image] }) }
+      },
     }],
     metadata: { equipmentId, startDate, endDate, quantity: String(quantity), phone: phone || "", address: address || "", notes: (notes || "").slice(0, 400), customerEmail: req.user.email, total: String(total) },
     success_url: `${origins[0] || "http://localhost:3000"}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
@@ -276,7 +282,7 @@ app.post("/api/payments/confirm", verifyToken, verifyRenter, wrap(async (req, re
       customerEmail: u.email, ownerEmail: eq.owner.email, amount: +m.total, currency: "usd",
       status: "paid", createdAt: new Date(),
     });
-  } catch (err) { 
+  } catch (err) {
     if (err.code === 11000) { await (await col("bookings")).deleteOne({ _id: b.insertedId }); const p = await payments.findOne({ sessionId }); return res.json({ success: true, bookingId: p.bookingId }); }
     throw err;
   }
