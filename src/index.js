@@ -177,7 +177,7 @@ app.put("/api/equipment/:id", verifyToken, verifyOwnerOrAdmin, wrap(async (req, 
   const f = { _id: oid(req.params.id) };
   if (req.user.role === "owner") f["owner.email"] = req.user.email;
   const set = pickEquipment(req.body);
-  if (req.user.role === "owner") set.status = "pending"; // re-review after edit
+  if (req.user.role === "owner") set.status = "pending"; 
   const r = await (await col("equipment")).updateOne(f, { $set: set });
   r.matchedCount ? res.json({ success: true }) : res.status(404).json({ message: "Not found or not yours" });
 }));
