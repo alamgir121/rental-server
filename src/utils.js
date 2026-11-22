@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 
 export const esc = (s = "") => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const DAY = 86400000;
+const DAY =  86400000;
 
 export function rentalUnits(start, end, rentalType) {
   const days = Math.max(1, Math.round((new Date(end) - new Date(start)) / DAY) + 1);
