@@ -330,7 +330,7 @@ app.get("/api/analytics/admin", verifyToken, verifyAdmin, wrap(async (_, res) =>
   ]);
   res.json({ totalUsers, totalEquipment, totalBookings, pendingApprovals, completedRentals, totalRevenue: rev[0]?.t || 0, monthlyBookings });
 }));
-app.get("/api/analytics/owner", verifyToken, verifyOwner, wrap(async (req, res) => {
+app.get("/api/analytics/owner", verifyToken, verifyOwner,  wrap(async (req, res) => {
   const [equipment, bookings, payments] = await Promise.all(["equipment", "bookings", "payments"].map(col));
   const email = req.user.email;
   const [totalListed, completedRentals, totalRentals, earn, monthlyEarnings] = await Promise.all([
